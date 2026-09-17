@@ -1,0 +1,46 @@
+
+### `.gitignore`
+
+```gitignore
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+*.log
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (large files)
+data/raw/
+data/cache/
+*.sqlite
+*.db
+
+# Secrets
+secrets/
+*.pem
+*.key

@@ -1,0 +1,36 @@
+# ==== Database ====
+POSTGRES_USER=rxcheck
+POSTGRES_PASSWORD=changeme
+POSTGRES_DB=rxcheck
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+DATABASE_URL=postgresql+asyncpg://rxcheck:changeme@db:5432/rxcheck
+
+# ==== Backend ====
+BACKEND_PORT=8000
+BACKEND_SECRET_KEY=generate-a-long-random-string
+BACKEND_CORS_ORIGINS=http://localhost:3000
+
+# ==== Frontend ====
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_DEFAULT_LOCALE=ar
+
+# ==== External APIs ====
+OPENFDA_API_KEY=            # optional, higher rate limits
+RXNAV_BASE_URL=https://rxnav.nlm.nih.gov/REST
+EMA_BASE_URL=https://www.ema.europa.eu/en/medicines
+EDA_BASE_URL=https://eservices.edaegypt.gov.eg
+
+# ==== OCR ====
+OCR_PROVIDER=tesseract      # tesseract | google | aws
+GOOGLE_VISION_KEY=          # optional
+
+# ==== AI Agent ====
+OPENAI_API_KEY=
+AGENT_MODEL=gpt-4o-mini
+VECTOR_DB_URL=http://chromadb:8000
+
+# ==== Scheduling ====
+SYNC_FDA_CRON=0 2 * * *
+SYNC_EMA_CRON=0 3 * * *
+SYNC_EDA_CRON=0 4 * * *

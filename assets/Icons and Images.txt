@@ -1,0 +1,25 @@
+assets/
+├── icons/
+│   ├── time/
+│   │   ├── fajr.svg
+│   │   ├── morning.svg
+│   │   ├── noon.svg
+│   │   ├── asr.svg
+│   │   ├── maghrib.svg
+│   │   ├── isha.svg
+│   │   └── night.svg
+│   ├── food/
+│   │   ├── empty-stomach.svg
+│   │   ├── before-meal.svg
+│   │   ├── with-meal.svg
+│   │   └── after-meal.svg
+│   └── severity/
+│       ├── severe.svg
+│       ├── moderate.svg
+│       ├── mild.svg
+│       └── none.svg
+├── logo/
+│   ├── logo-ar.svg
+│   └── logo-en.svg
+└── illustrations/
+    └── onboarding/
