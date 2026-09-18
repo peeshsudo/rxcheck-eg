@@ -11,8 +11,9 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 redis==5.0.8
 chromadb==0.5.5
-langchain==0.3.3
-langgraph==0.2.30
+langchain>=1.0.0
+langgraph>=1.0.0
+langgraph-checkpoint>=3.0.0
 openai==1.51.0
 pytest==8.3.2
 pytest-asyncio==0.24.0

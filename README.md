@@ -9,6 +9,10 @@ cp .env.example .env
 make install
 make dev
 
-Frontend: http://localhost:3000
-Backend API: http://localhost:8000/docs
-Adminer (DB UI): http://localhost:8080
+
+
+```bash
+cp .env.example .env
+# Edit .env — set POSTGRES_PASSWORD and BACKEND_SECRET_KEY at minimum
+chmod +x scripts/*.sh
+./scripts/setup.sh
