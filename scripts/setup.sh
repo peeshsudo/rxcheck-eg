@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Export UID/GID so containers run as your user (prevents root-owned files)
-export UID="${UID:-$(id -u)}"
-export GID="${GID:-$(id -g)}"
+# Export host UID/GID so containers run as your user (prevents root-owned files)
+# Note: bash's UID/GID are readonly, so we use HOST_UID/HOST_GID
+export HOST_UID="$(id -u)"
+export HOST_GID="$(id -g)"
 
 echo "→ Copying .env..."
 [ -f .env ] || cp .env.example .env
