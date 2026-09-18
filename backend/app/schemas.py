@@ -1,3 +1,9 @@
+"""Pydantic schemas.
+
+Changes from prior version:
+- Added ProposalOut and AuditLogOut (admin.py imports these)
+- Added UNII / InChIKey to DrugOut
+"""
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
@@ -7,6 +13,8 @@ class DrugOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     rxcui: str | None
+    unii: str | None
+    inchikey: str | None
     generic_en: str
     generic_ar: str | None
     drug_class: str | None
@@ -64,3 +72,29 @@ class AssistantAnswer(BaseModel):
     grounded: bool
     severity: str | None = None
     sources: list[str] = []
+
+
+class ProposalOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    type: str
+    summary: str
+    proposed_by: str
+    confidence_score: float | None
+    status: str
+    decided_by: str | None
+    decided_at: datetime | None
+    created_at: datetime
+
+
+class AuditLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    ts: datetime
+    actor: str
+    action: str
+    entity_type: str | None
+    entity_id: UUID | None
+    detail: dict | None
+    prev_hash: str | None
+    hash: str

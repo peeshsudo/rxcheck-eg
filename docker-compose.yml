@@ -19,6 +19,7 @@ services:
 
   backend:
     build: ./backend
+    user: "${UID:-1000}:${GID:-1000}"  
     env_file: .env
     depends_on:
       db:
@@ -59,6 +60,7 @@ services:
 
   scheduler:
     build: ./automation
+    user: "${UID:-1000}:${GID:-1000}" 
     env_file: .env
     depends_on:
       - db
