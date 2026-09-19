@@ -15,13 +15,16 @@ docker-compose build
 echo "→ Starting services..."
 docker-compose up -d
 
-echo "→ Waiting for DB..."
-sleep 5
+echo "→ Waiting for DB to initialize..."
+until docker compose exec -T db pg_isready -U "${POSTGRES_USER:-rxcheck}" >/dev/null 2>&1; do
+  echo "   ...waiting"
+  sleep 2
+done
 
-echo "→ Running migrations..."
-docker-compose exec backend alembic upgrade head #|| true "commented to know when migrations fail."
+#echo "→ Running migrations..."
+#docker-compose exec backend alembic upgrade head #|| true "commented to know when migrations fail."
 
-echo "→ Seeding..."
-docker-compose exec backend python -m app.seed #|| true "commented to know when migrations fail."
+#echo "→ Seeding..."
+#docker-compose exec backend python -m app.seed #|| true "commented to know when migrations fail."
 
 echo "✅ Ready. Frontend: http://localhost:3000  API: http://localhost:8000/docs"

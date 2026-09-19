@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models import Drug
 from app.schemas import DrugOut
 
-router = APIRouter()
+router = APIRouter(tags=["drugs"])
 
 
 @router.get("/search", response_model=list[DrugOut])

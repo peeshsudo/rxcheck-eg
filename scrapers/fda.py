@@ -15,7 +15,7 @@ class FDAScraper(BaseScraper):
         if self.api_key:
             params["api_key"] = self.api_key
 
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
             r = await client.get(self.BASE, params=params)
             r.raise_for_status()
             return r.json().get("results", [])
@@ -25,7 +25,7 @@ class FDAScraper(BaseScraper):
         params = {"search": f"openfda.generic_name:{generic_name}", "limit": 1}
         if self.api_key:
             params["api_key"] = self.api_key
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
             r = await client.get(self.BASE, params=params)
             if r.status_code != 200:
                 return []

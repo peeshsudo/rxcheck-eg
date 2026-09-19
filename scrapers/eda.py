@@ -12,11 +12,11 @@ from scrapers.base import BaseScraper
 
 class EDAScraper(BaseScraper):
     source = "EDA"
-    BASE = "https://eservices.edaegypt.gov.eg"
+    BASE = "http://eservices.edaegypt.gov.eg/EDASearch/SearchRegDrugs.aspx"
 
     async def fetch_all(self) -> list[dict]:
         # Placeholder: replace with the real endpoint once EDA access is granted
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
             r = await client.get(f"{self.BASE}/api/drugs")
             if r.status_code != 200:
                 return []

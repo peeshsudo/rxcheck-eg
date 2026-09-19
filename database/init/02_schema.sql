@@ -9,6 +9,8 @@ CREATE TABLE drugs (
     generic_en      VARCHAR(255) NOT NULL,
     generic_ar      VARCHAR(255),
     drug_class      VARCHAR(255),
+    unii            VARCHAR(20),
+    inchikey        VARCHAR(27),
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
