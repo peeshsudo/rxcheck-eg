@@ -10,9 +10,9 @@ async def run_source(scraper):
     print(f"→ Syncing {scraper.source}...")
     try:
         records = await scraper.run()
-        print(f"  ✓ {scraper.source}: {len(records)} records")
+        print(f"  ✓ {scraper.source}: {len(records)} records persisted")
     except Exception as e:
-        print(f"  ✗ {scraper.source} failed: {e}")
+        print(f"  ✗ {scraper.source} failed: {type(e).__name__}: {e}")
 
 
 async def main():

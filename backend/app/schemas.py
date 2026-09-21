@@ -53,6 +53,7 @@ class ScheduleIn(BaseModel):
     time_slots: list[str]
     food_relation: str | None = None
     dose_note: str | None = None
+    drug_id: str
 
 
 class ScheduleOut(ScheduleIn):
@@ -60,6 +61,8 @@ class ScheduleOut(ScheduleIn):
     id: UUID
     active: bool
     created_at: datetime
+    drug_id: str
+
 
 
 class AssistantQuery(BaseModel):

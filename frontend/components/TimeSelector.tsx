@@ -13,14 +13,15 @@ const TIME_ICONS = [
 
 export default function TimeSelector({ drug, onNext }: any) {
   const [selected, setSelected] = useState<string[]>([]);
+  const name = drug?.generic_ar || drug?.generic_en || "الدواء";
 
   function toggle(id: string) {
-    setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   }
 
   return (
     <div className="bg-white rounded-xl border p-4">
-      <h2 className="font-bold mb-1">متى تتناول {drug.brand_ar}؟</h2>
+      <h2 className="font-bold mb-1">متى تتناول {name}؟</h2>
       <p className="text-xs text-[#7C8B85] mb-3">اختر وقتاً أو أكثر</p>
       <div className="grid grid-cols-4 gap-2">
         {TIME_ICONS.map((t) => (

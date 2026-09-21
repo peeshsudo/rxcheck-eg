@@ -1,12 +1,43 @@
 "use client";
 import { useRef, useState } from "react";
 import Tesseract from "tesseract.js";
+import MatchList from "./MatchList";
 
-export default function CameraCapture({ onMatched }: { onMatched: (d: any) => void }) {
+type Drug = {
+  id: string;
+  generic_en: string;
+  generic_ar: string | null;
+  drug_class: string | null;
+};
+
+export default function CameraCapture({ onMatched }: { onMatched: (d: Drug) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [q, setQ] = useState("");
   const [progress, setProgress] = useState(0);
-  const [matches, setMatches] = useState<any[]>([]);
+  const [matches, setMatches] = useState<Drug[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function search(text: string) {
+    const query = text.trim().slice(0, 30);
+    if (query.length < 2) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/drugs/search?q=${encodeURIComponent(query)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [];
+      setMatches(list);
+      if (list.length === 0) setError("لا نتائج. جرّب اسماً آخر.");
+    } catch (e: any) {
+      setError(`تعذّر البحث: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -15,12 +46,13 @@ export default function CameraCapture({ onMatched }: { onMatched: (d: any) => vo
     const { data: { text } } = await Tesseract.recognize(file, "ara+eng", {
       logger: (m) => { if (m.status === "recognizing text") setProgress(m.progress); },
     });
-    const results = await fuzzySearch(text);
-    setMatches(results);
+    setProgress(0);
+    const first = text.replace(/\s+/g, " ").trim().split(" ").slice(0, 3).join(" ");
+    await search(first);
   }
 
   return (
-    <div className="bg-white rounded-xl border p-4">
+    <div className="bg-white rounded-xl border p-4 space-y-3">
       <button
         className="w-full p-4 rounded-xl border-2 border-dashed border-[#0F5C56] bg-[#DCEDE9] text-[#0F5C56] font-bold"
         onClick={() => inputRef.current?.click()}
@@ -35,18 +67,33 @@ export default function CameraCapture({ onMatched }: { onMatched: (d: any) => vo
         onChange={handleFile}
         className="hidden"
       />
-      {preview && <img src={preview} alt="معاينة" className="w-full mt-3 rounded-lg" />}
+      {preview && <img src={preview} alt="معاينة" className="w-full rounded-lg" />}
       {progress > 0 && progress < 1 && (
-        <p className="text-xs text-[#7C8B85] mt-2">جاري التعرف... {Math.round(progress * 100)}%</p>
+        <p className="text-xs text-[#7C8B85]">جاري التعرف... {Math.round(progress * 100)}%</p>
       )}
+
+      <div className="border-t pt-3">
+        <p className="text-xs text-[#7C8B85] mb-2">أو اكتب اسم الدواء:</p>
+        <div className="flex gap-2">
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && search(q)}
+            placeholder="aspirin / أسبرين"
+            className="flex-1 p-3 border rounded-lg"
+          />
+          <button
+            onClick={() => search(q)}
+            disabled={loading || q.trim().length < 2}
+            className="px-4 rounded-lg bg-[#0F5C56] text-white font-bold disabled:opacity-40"
+          >
+            {loading ? "..." : "بحث"}
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
       {matches.length > 0 && <MatchList matches={matches} onSelect={onMatched} />}
     </div>
   );
-}
-
-async function fuzzySearch(text: string) {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/search?q=${encodeURIComponent(text.slice(0, 20))}`
-  );
-  return res.ok ? await res.json() : [];
 }

@@ -10,10 +10,11 @@ const FOOD = [
 
 export default function FoodSelector({ drug, times, onSubmit }: any) {
   const [food, setFood] = useState<string | null>(null);
+  const name = drug?.generic_ar || drug?.generic_en || "الدواء";
 
   return (
     <div className="bg-white rounded-xl border p-4">
-      <h2 className="font-bold mb-1">علاقة {drug.brand_ar} بالطعام</h2>
+      <h2 className="font-bold mb-1">علاقة {name} بالطعام</h2>
       <p className="text-xs text-[#7C8B85] mb-3">هل تتناوله قبل الأكل أم بعده؟</p>
       <div className="grid grid-cols-2 gap-2">
         {FOOD.map((f) => (
