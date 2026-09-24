@@ -1,5 +1,3 @@
-#version: "3.9"
-
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -19,8 +17,11 @@ services:
 
   backend:
     build: ./backend
-    user: "${HOST_UID:-1000}:${HOST_GID:-1000}" 
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     env_file: .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      TZ: "Africa/Cairo"
     depends_on:
       db:
         condition: service_healthy
@@ -33,8 +34,15 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
-    build: ./frontend
-    env_file: .env
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-ar}
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-ar}
+      NEXT_TELEMETRY_DISABLED: "1"
     depends_on:
       - backend
     ports:
@@ -42,6 +50,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - frontend_next:/app/.next
     command: npm run dev
 
   adminer:
@@ -62,15 +71,24 @@ services:
     build: ./automation
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     env_file: .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: "/app"
+      TZ: "Africa/Cairo"
     depends_on:
-      - db
-      - backend
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
     volumes:
       - ./automation:/app
       - ./scrapers:/app/scrapers
-      - ./backend/app:/app/app        
-    command: python scheduler.py
+      - ./backend/app:/app/app
+      - ./scripts:/app/scripts
+    command: python -u scheduler.py
+    restart: unless-stopped
 
 volumes:
   pgdata:
   chromadata:
+  frontend_next:

@@ -3,12 +3,21 @@ import { useState } from "react";
 import CameraCapture from "./CameraCapture";
 import TimeSelector from "./TimeSelector";
 import FoodSelector from "./FoodSelector";
+import InteractionPanel from "./InteractionPanel";
 
 type Drug = {
   id: string;
   generic_en: string;
   generic_ar: string | null;
   drug_class: string | null;
+};
+
+type SavedMed = {
+  id: string;
+  name: string;
+  genericEn: string;
+  times: string[];
+  food: string | null;
 };
 
 function getUserId(): string {
@@ -26,11 +35,36 @@ export default function ScanFlow() {
   const [drug, setDrug] = useState<Drug | null>(null);
   const [times, setTimes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savedMeds, setSavedMeds] = useState<SavedMed[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   async function handleFood(food: string | null) {
     if (!drug) return;
+
+    // Duplicate check
+    const existing = savedMeds.find(
+      (m) =>
+        m.name.trim() === (drug.generic_ar || drug.generic_en).trim() ||
+        m.genericEn === drug.generic_en
+    );
+
+    if (existing) {
+      const replace = window.confirm(
+        `⚠️ هذا الدواء موجود في القائمة بالفعل:\n\n` +
+          `${existing.name}\n` +
+          `🕐 ${existing.times.join(", ")} | 🍽️ ${existing.food || "—"}\n\n` +
+          `هل تريد استبداله بالإدخال الجديد؟\n` +
+          `(موافق = استبدال، إلغاء = الاحتفاظ بالقديم)`
+      );
+      if (!replace) {
+        setDrug(null);
+        setTimes([]);
+        setStep(1);
+        return;
+      }
+      setSavedMeds((prev) => prev.filter((m) => m.id !== existing.id));
+    }
+
     setSaving(true);
     setError(null);
     try {
@@ -46,11 +80,22 @@ export default function ScanFlow() {
           dose_note: null,
         }),
       });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`HTTP ${res.status}: ${txt}`);
-      }
-      setSaved(true);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+
+      setSavedMeds((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          name: drug.generic_ar || drug.generic_en,
+          genericEn: drug.generic_en,
+          times,
+          food,
+        },
+      ]);
+
+      setDrug(null);
+      setTimes([]);
+      setStep(1);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -58,34 +103,9 @@ export default function ScanFlow() {
     }
   }
 
-  function reset() {
-    setStep(1);
-    setDrug(null);
-    setTimes([]);
-    setSaved(false);
-    setError(null);
-  }
-
-  if (saved) {
-    return (
-      <div className="bg-white rounded-xl border p-6 text-center space-y-3">
-        <div className="text-4xl">✅</div>
-        <h2 className="font-bold">تم حفظ التذكير</h2>
-        <p className="text-sm text-[#7C8B85]">
-          {drug?.generic_ar || drug?.generic_en}
-        </p>
-        <button
-          onClick={reset}
-          className="px-4 py-2 rounded-lg bg-[#0F5C56] text-white font-bold"
-        >
-          إضافة تذكير آخر
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Step indicators */}
       <div className="flex items-center gap-2 text-xs text-[#7C8B85]">
         <span className={step === 1 ? "text-[#0F5C56] font-bold" : ""}>١. الدواء</span>
         <span>›</span>
@@ -95,11 +115,24 @@ export default function ScanFlow() {
       </div>
 
       {step === 1 && (
-        <CameraCapture onMatched={(d) => { setDrug(d); setStep(2); }} />
+        <CameraCapture
+          onMatched={(d) => {
+            setDrug(d);
+            setStep(2);
+          }}
+        />
       )}
+
       {step === 2 && drug && (
-        <TimeSelector drug={drug} onNext={(t: string[]) => { setTimes(t); setStep(3); }} />
+        <TimeSelector
+          drug={drug}
+          onNext={(t: string[]) => {
+            setTimes(t);
+            setStep(3);
+          }}
+        />
       )}
+
       {step === 3 && drug && (
         <FoodSelector drug={drug} times={times} onSubmit={handleFood} />
       )}
@@ -115,6 +148,35 @@ export default function ScanFlow() {
           ← رجوع
         </button>
       )}
+
+      {savedMeds.length > 0 && (
+        <section className="bg-white rounded-xl border p-4 space-y-3">
+          <h2 className="font-bold">قائمة الأدوية ({savedMeds.length})</h2>
+          <ul className="space-y-2">
+            {savedMeds.map((m) => (
+              <li
+                key={m.id}
+                className="p-3 border rounded-lg flex justify-between items-start"
+              >
+                <div>
+                  <div className="font-bold text-sm">{m.name}</div>
+                  <div className="text-xs text-[#7C8B85]">
+                    🕐 {m.times.join(", ")} · 🍽️ {m.food || "—"}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSavedMeds((prev) => prev.filter((x) => x.id !== m.id))}
+                  className="text-xs text-red-600 hover:underline"
+                >
+                  حذف
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {savedMeds.length >= 2 && <InteractionPanel meds={savedMeds} />}
     </div>
   );
 }

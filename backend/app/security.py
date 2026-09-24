@@ -1,78 +1,63 @@
 """
-Security utilities.
-
-Changes from prior version:
-- Constant-time admin key comparison (prevents timing attacks)
-- Security headers middleware (clickjacking, MIME sniffing, CSP)
-- Removes Server fingerprint header
+Security middleware and admin-key dependency.
+JWT helpers live here too, ready for when auth is wired in.
 """
-import hmac
-import secrets
-from fastapi import Header, HTTPException, status
+from datetime import datetime, timedelta, timezone
+import logging
+from typing import Optional
+
+from fastapi import Depends, Header, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from app.config import settings
 
+logger = logging.getLogger("rxcheck.security")
 
-async def require_admin_key(x_admin_key: str = Header(...)) -> None:
-    """
-    Verify the X-Admin-Key header using constant-time comparison.
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    Why constant-time: a naive `==` check leaks the correct key byte-by-byte
-    through response timing. hmac.compare_digest prevents that.
+# OAuth2 bearer (used by future auth endpoints)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
-    Upgrade path: replace this with JWT + role checks once you have
-    real user accounts (see docs/security.md).
-    """
-    expected = settings.backend_admin_key.encode()
-    provided = x_admin_key.encode()
-
-    # compare_digest requires equal-length inputs; pad to avoid leaks
-    if len(expected) != len(provided):
-        # still do a compare to keep timing flat
-        hmac.compare_digest(provided, provided)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid admin key",
-        )
-
-    if not hmac.compare_digest(provided, expected):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid admin key",
-        )
+# Use the actual config field — never a hardcoded fallback
+SECRET_KEY = settings.backend_secret_key
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 
-def generate_secret(length: int = 48) -> str:
-    """Utility: generate a secure random secret for .env."""
-    return secrets.token_urlsafe(length)
+def verify_password(plain: str, hashed: str) -> bool:
+    return pwd_context.verify(plain, hashed)
 
 
-# ============================================================
-# Security headers middleware
-# ============================================================
-
-SECURITY_HEADERS = {
-    "X-Frame-Options": "DENY",                       # no clickjacking
-    "X-Content-Type-Options": "nosniff",             # no MIME sniffing
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "geolocation=(), microphone=(), camera=(self)",
-    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-    "Content-Security-Policy": (
-        "default-src 'self'; "
-        "img-src 'self' data: blob:; "
-        "script-src 'self' 'unsafe-inline'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "connect-src 'self' http://localhost:8000"
-    ),
-}
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
 
 
-async def add_security_headers(request, call_next):
-    """FastAPI/Starlette middleware: attach security headers to every response."""
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    to_encode["exp"] = expire
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+async def add_security_headers(request: Request, call_next):
+    """Attach conservative security headers to every response."""
     response = await call_next(request)
-    for header, value in SECURITY_HEADERS.items():
-        response.headers[header] = value
-    # Remove server fingerprint
-    if "server" in response.headers:
-        del response.headers["server"]
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
     return response
+
+
+async def require_admin_key(x_admin_key: str = Header(None)) -> None:
+    """Gate admin endpoints behind a shared secret."""
+    if not x_admin_key or x_admin_key != settings.backend_admin_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid or missing X-Admin-Key",
+        )

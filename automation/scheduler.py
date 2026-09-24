@@ -27,6 +27,12 @@ async def main():
     scheduler.add_job(run_sync, CronTrigger.from_crontab(os.getenv("SYNC_EMA_CRON", "0 3 * * *")), id="sync_ema")
     # EDA: 4 AM daily
     scheduler.add_job(run_sync, CronTrigger.from_crontab(os.getenv("SYNC_EDA_CRON", "0 4 * * *")), id="sync_eda")
+    #Added promoter to write data into drugs.py 
+    scheduler.add_job(
+    lambda: __import__("subprocess").run(["python", "/app/scripts/promote_changes.py"]),
+    CronTrigger(hour=5, minute=0),  # 1 hour after scrapers
+    id="promote_changes",
+)
 
     scheduler.start()
     #print("[scheduler] Running. Jobs:", scheduler.get_jobs())

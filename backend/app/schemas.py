@@ -1,13 +1,48 @@
-"""Pydantic schemas.
-
-Changes from prior version:
-- Added ProposalOut and AuditLogOut (admin.py imports these)
-- Added UNII / InChIKey to DrugOut
-"""
+"""Pydantic schemas for RxCheck-EG."""
 from datetime import datetime
+from enum import Enum
+from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+
+# ==== Auth ====
+
+class UserRole(str, Enum):
+    PATIENT = "PATIENT"
+    PHARMACIST = "PHARMACIST"
+    ADMIN = "ADMIN"
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_role: UserRole
+
+
+class TokenData(BaseModel):
+    user_id: Optional[str] = None
+    role: Optional[UserRole] = None
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    full_name: str = Field(..., min_length=2, max_length=100)
+    role: UserRole = UserRole.PATIENT
+
+
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+
+
+# ==== Domain ====
 
 class DrugOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -53,7 +88,6 @@ class ScheduleIn(BaseModel):
     time_slots: list[str]
     food_relation: str | None = None
     dose_note: str | None = None
-    drug_id: str
 
 
 class ScheduleOut(ScheduleIn):
@@ -61,8 +95,6 @@ class ScheduleOut(ScheduleIn):
     id: UUID
     active: bool
     created_at: datetime
-    drug_id: str
-
 
 
 class AssistantQuery(BaseModel):

@@ -78,3 +78,16 @@ test-results/
 playwright-report/
 tree.txt
 setup.log
+
+# Editor / temp files
+*-v1.py
+*-V1.py
+*-V1.tsx
+test.txt
+setup.log
+package-lock.json
+DB query cheat sheet
+
+# Local backups
+*.backup
+*.bak

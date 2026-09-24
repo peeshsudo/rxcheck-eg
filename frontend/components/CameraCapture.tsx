@@ -1,6 +1,5 @@
 "use client";
 import { useRef, useState } from "react";
-import Tesseract from "tesseract.js";
 import MatchList from "./MatchList";
 
 type Drug = {
@@ -14,9 +13,9 @@ export default function CameraCapture({ onMatched }: { onMatched: (d: Drug) => v
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  const [progress, setProgress] = useState(0);
   const [matches, setMatches] = useState<Drug[]>([]);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   async function search(text: string) {
@@ -42,13 +41,48 @@ export default function CameraCapture({ onMatched }: { onMatched: (d: Drug) => v
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
     setPreview(URL.createObjectURL(file));
-    const { data: { text } } = await Tesseract.recognize(file, "ara+eng", {
-      logger: (m) => { if (m.status === "recognizing text") setProgress(m.progress); },
-    });
+    setError(null);
     setProgress(0);
-    const first = text.replace(/\s+/g, " ").trim().split(" ").slice(0, 3).join(" ");
-    await search(first);
+
+    // ---- Tesseract v5 API ----
+    // Dynamic import prevents the crash if the module fails to load
+    try {
+      const Tesseract = (await import("tesseract.js")).default;
+
+      const worker = await Tesseract.createWorker(["eng", "ara"], 1, {
+        logger: (m: any) => {
+          if (m.status === "recognizing text") setProgress(m.progress || 0);
+        },
+        // Silence the "read image" error path
+        errorHandler: (err: any) => console.warn("[tesseract]", err),
+      });
+
+      const { data: { text } } = await worker.recognize(file);
+      await worker.terminate();
+
+      setProgress(0);
+
+      // Take the longest word-looking token
+      const tokens = text
+        .replace(/[^\w\u0600-\u06FF\s]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length >= 3)
+        .slice(0, 4);
+
+      const query = tokens.join(" ").slice(0, 30);
+      if (query) {
+        setQ(query);
+        await search(query);
+      } else {
+        setError("لم يتم التعرف على نص. اكتب الاسم يدوياً.");
+      }
+    } catch (err: any) {
+      console.warn("[ocr] failed:", err);
+      setProgress(0);
+      setError("تعذّر قراءة الصورة. اكتب اسم الدواء يدوياً.");
+    }
   }
 
   return (
@@ -67,9 +101,13 @@ export default function CameraCapture({ onMatched }: { onMatched: (d: Drug) => v
         onChange={handleFile}
         className="hidden"
       />
+
       {preview && <img src={preview} alt="معاينة" className="w-full rounded-lg" />}
+
       {progress > 0 && progress < 1 && (
-        <p className="text-xs text-[#7C8B85]">جاري التعرف... {Math.round(progress * 100)}%</p>
+        <p className="text-xs text-[#7C8B85]">
+          جاري التعرف... {Math.round(progress * 100)}%
+        </p>
       )}
 
       <div className="border-t pt-3">
@@ -77,8 +115,8 @@ export default function CameraCapture({ onMatched }: { onMatched: (d: Drug) => v
         <div className="flex gap-2">
           <input
             value={q}
-            onChange={e => setQ(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && search(q)}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && search(q)}
             placeholder="aspirin / أسبرين"
             className="flex-1 p-3 border rounded-lg"
           />
