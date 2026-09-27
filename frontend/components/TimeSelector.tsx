@@ -1,14 +1,15 @@
 "use client";
 import { useState } from "react";
+import { Sunrise, Sun, SunDim, CloudSun, Sunset, Moon, MoonStar } from "lucide-react";
 
 const TIME_ICONS = [
-  { id: "fajr",    emoji: "🌅", ar: "فجر" },
-  { id: "morning", emoji: "🌄", ar: "صباح" },
-  { id: "noon",    emoji: "☀️", ar: "ظهر" },
-  { id: "asr",     emoji: "🌤️", ar: "عصر" },
-  { id: "maghrib", emoji: "🌇", ar: "مغرب" },
-  { id: "isha",    emoji: "🌙", ar: "عشاء" },
-  { id: "night",   emoji: "🌑", ar: "ليل" },
+  { id: "fajr",    label: "Fajr",    Icon: Sunrise },
+  { id: "morning", label: "Morning", Icon: Sun },
+  { id: "noon",    label: "Noon",    Icon: SunDim },
+  { id: "asr",     label: "Asr",     Icon: CloudSun },
+  { id: "maghrib", label: "Maghrib", Icon: Sunset },
+  { id: "isha",    label: "Isha",    Icon: Moon },
+  { id: "night",   label: "Night",   Icon: MoonStar },
 ];
 
 export default function TimeSelector({ drug, onNext }: any) {
@@ -20,31 +21,34 @@ export default function TimeSelector({ drug, onNext }: any) {
   }
 
   return (
-    <div className="bg-white rounded-xl border p-4">
-      <h2 className="font-bold mb-1">متى تتناول {name}؟</h2>
-      <p className="text-xs text-[#7C8B85] mb-3">اختر وقتاً أو أكثر</p>
+    <div className="bg-white rounded-2xl border border-slate-200 p-4">
+      <h2 className="font-bold mb-1 text-slate-900">When to take {drug?.generic_en}؟</h2>
+      <p className="text-xs text-slate-500 mb-4">Pick one or more times</p>
       <div className="grid grid-cols-4 gap-2">
-        {TIME_ICONS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => toggle(t.id)}
-            className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center gap-1 ${
-              selected.includes(t.id)
-                ? "border-[#0F5C56] bg-[#DCEDE9]"
-                : "border-[#D8E3DF] bg-white"
-            }`}
-          >
-            <span className="text-2xl">{t.emoji}</span>
-            <span className="text-[10px]">{t.ar}</span>
-          </button>
-        ))}
+        {TIME_ICONS.map(({ id, label, Icon }) => {
+          const on = selected.includes(id);
+          return (
+            <button
+              key={id}
+              onClick={() => toggle(id)}
+              className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition ${
+                on
+                  ? "border-teal-600 bg-teal-50 text-teal-800"
+                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+              }`}
+            >
+              <Icon size={26} strokeWidth={on ? 2.2 : 1.8} />
+              <span className="text-[10px] font-medium">{label}</span>
+            </button>
+          );
+        })}
       </div>
       <button
         disabled={selected.length === 0}
         onClick={() => onNext(selected)}
-        className="w-full mt-4 p-3 rounded-lg bg-[#0F5C56] text-white font-bold disabled:opacity-40"
+        className="w-full mt-4 p-3 rounded-xl bg-teal-700 text-white font-bold disabled:opacity-40 transition"
       >
-        التالي
+        Next
       </button>
     </div>
   );

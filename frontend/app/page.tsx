@@ -1,13 +1,24 @@
-import ScanFlow from "@/components/ScanFlow";
+"use client";
+import { useState } from "react";
+import TabBar, { TabId } from "@/components/TabBar";
+import CheckPanel from "@/components/CheckPanel";
+import AssistantPanel from "@/components/AssistantPanel";
+import CataloguePanel from "@/components/CataloguePanel";
+import CurationPanel from "@/components/CurationPanel";
+import AuditPanel from "@/components/AuditPanel";
 
 export default function Home() {
+  const [tab, setTab] = useState<TabId>("check");
+
   return (
-    <main className="max-w-md mx-auto p-4">
-      <header className="mb-4">
-        <h1 className="text-xl font-bold">RxCheck EG</h1>
-        <p className="text-sm text-[#7C8B85]">امسح علبة الدواء لتحديده</p>
-      </header>
-      <ScanFlow />
-    </main>
+    <div className="min-h-screen bg-slate-50 pb-24">
+      {tab === "check"     && <CheckPanel />}
+      {tab === "assistant" && <AssistantPanel />}
+      {tab === "catalogue" && <CataloguePanel />}
+      {tab === "curation"  && <CurationPanel />}
+      {tab === "audit"     && <AuditPanel />}
+
+      <TabBar active={tab} onChange={setTab} />
+    </div>
   );
 }

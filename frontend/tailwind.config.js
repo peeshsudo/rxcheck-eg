@@ -4,8 +4,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        ar: ["var(--font-ar)", "sans-serif"],
-        en: ["var(--font-en)", "sans-serif"],
+        sans: ["var(--font-en)", "system-ui", "sans-serif"],
       },
     },
   },
