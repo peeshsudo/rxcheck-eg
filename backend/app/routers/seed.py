@@ -1,7 +1,8 @@
 """Run with: python -m app.seed"""
 import asyncio
+
 from app.database import SessionLocal
-from app.models import Drug, Product, Interaction
+from app.models import Drug
 
 SEED_DRUGS = [
     {"rxcui": "32968", "generic_en": "clopidogrel", "generic_ar": "كلوبيدوجريل", "drug_class": "Antiplatelet"},

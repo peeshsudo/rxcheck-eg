@@ -13,32 +13,48 @@ type Drug = {
 const NOISE = new Set([
   "ref", "lot", "batch", "exp", "mfg", "the", "and", "for", "with",
   "capsule", "capsules", "tablet", "tablets", "suspension", "syrup",
-  "each", "contains", "mg", "ml", "gm", "g", "mcg", "iu",
+  "each", "contains", "mg", "ml", "gm", "g", "mcg", "iu", "cap", "tab",
   // Arabic noise
   "الاستعمال", "الجرعة", "كبسولة", "كبسولات", "اقراص", "أقراص",
   "شراب", "انظر", "للنشرة", "الداخلية", "علبة", "تركيز", "مجم",
   "معوي", "معوية", "واسع", "المدى", "مطهر", "علاج", "لعلاج",
+  "الى", "في", "من", "على", "عن", "او", "و",
 ]);
 
+function isArabic(s: string): boolean {
+  return /[\u0600-\u06FF]/.test(s);
+}
+
 function extractCandidates(text: string): string[] {
-  const tokens = text
+  const allTokens = text
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)
     .map((t) => t.trim())
-    .filter((t) => t.length >= 3 && !/^\d+$/.test(t))
+    .filter((t) => t.length > 0)
+    .filter((t) => !/^\d+$/.test(t))
     .filter((t) => !NOISE.has(t.toLowerCase()));
 
-  // Build single tokens + adjacent pairs (for multi-word names like
-  // "حمض الفالبرويك" or "Clavulanic Acid")
-  const singles = [...tokens];
+  // Split by script — the app is Egypt-focused, Arabic wins
+  const arabic = allTokens.filter((t) => isArabic(t) && t.length >= 4);
+  const latin  = allTokens.filter((t) => !isArabic(t) && t.length >= 5);
+
+  // Adjacent pairs (for multi-word names like "Clavulanic Acid")
   const pairs: string[] = [];
-  for (let i = 0; i < tokens.length - 1; i++) {
-    pairs.push(`${tokens[i]} ${tokens[i + 1]}`);
+  for (let i = 0; i < arabic.length - 1; i++) {
+    pairs.push(`${arabic[i]} ${arabic[i + 1]}`);
+  }
+  for (let i = 0; i < latin.length - 1; i++) {
+    pairs.push(`${latin[i]} ${latin[i + 1]}`);
   }
 
-  // Longest first — real drug names tend to be longer than noise
-  return [...pairs, ...singles].sort((a, b) => b.length - a.length);
+  // Priority: Arabic longest → Arabic pairs → Latin longest (≥5 chars) → Latin pairs
+  return [
+    ...arabic.sort((a, b) => b.length - a.length),
+    ...pairs,
+    ...latin.sort((a, b) => b.length - a.length),
+  ];
 }
+
 
 export default function CameraCapture({ onMatched }: { onMatched: (d: Drug) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
