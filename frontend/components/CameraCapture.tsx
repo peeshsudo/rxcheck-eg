@@ -81,17 +81,22 @@ export default function CameraCapture({ onMatched }: { onMatched: (d: Drug) => v
 
   async function smartSearch(text: string) {
     const candidates = extractCandidates(text);
-    if (candidates.length === 0) {
-      setStatusMsg("لم يتم التعرف على نص. اكتب الاسم يدوياً.");
+    const rawFirst = text.replace(/\s+/g, " ").trim().slice(0, 40);
+
+    if (candidates.length === 0 && !rawFirst) {
+      setStatusMsg("لم يتم التعرف على نصّ. اكتب الاسم يدوياً.");
       return;
     }
 
-    setStatusMsg(`جاري البحث في ${candidates.length} كلمة مرشحة...`);
+    // Fallback: also try the raw OCR text (backend does LIKE matching)
+    const allTries = candidates.length > 0 ? [...candidates, rawFirst] : [rawFirst];
 
-    // Try each candidate longest-first. Stop at first non-empty result.
-    for (let i = 0; i < candidates.length; i++) {
-      const c = candidates[i];
-      setStatusMsg(`محاولة ${i + 1}/${candidates.length}: "${c}"`);
+    setStatusMsg(`جاري البحث في ${allTries.length} كلمة مرشحة...`);
+
+    for (let i = 0; i < allTries.length; i++) {
+      const c = allTries[i];
+      if (!c || c.trim().length < 2) continue;
+      setStatusMsg(`محاولة ${i + 1}/${allTries.length}: "${c.slice(0, 30)}"`);
       const results = await apiSearch(c);
       if (results.length > 0) {
         setQ(c);
@@ -101,7 +106,6 @@ export default function CameraCapture({ onMatched }: { onMatched: (d: Drug) => v
       }
     }
 
-    // Nothing matched — fall back to the two longest tokens joined
     setStatusMsg("لم يتم العثور على تطابق. جرّب كلمة من الاسم.");
     setMatches([]);
   }
@@ -125,15 +129,20 @@ export default function CameraCapture({ onMatched }: { onMatched: (d: Drug) => v
         errorHandler: (err: any) => console.warn("[tesseract]", err),
       });
 
-      const {
-        data: { text },
-      } = await worker.recognize(file);
+      const { data: { text } } = await worker.recognize(file);
       await worker.terminate();
       setProgress(0);
 
-      // Show what OCR extracted so the user can debug
-      const cleaned = text.replace(/\s+/g, " ").trim().slice(0, 120);
-      console.log("[ocr text]", cleaned);
+      // Log what OCR produced — check browser console (F12) to debug
+      const cleaned = text.replace(/\s+/g, " ").trim();
+      console.log("=== OCR raw text ===");
+      console.log(cleaned);
+      console.log("=== length:", cleaned.length, "===");
+
+      if (cleaned.length === 0) {
+        setStatusMsg("OCR لم يقرأ أي نص. جرّب صورة أوضح أو اكتب الاسم.");
+        return;
+      }
 
       await smartSearch(text);
     } catch (err) {
