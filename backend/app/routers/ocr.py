@@ -1,6 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, status
 from typing import Dict, Any
-import re
 
 router = APIRouter(prefix="/ocr", tags=["OCR Packaging Reader"])
 

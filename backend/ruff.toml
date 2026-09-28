@@ -1,0 +1,25 @@
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = [
+    # FastAPI's Depends/Query/File in argument defaults is the standard pattern
+    "B008",
+    # zip() without strict= — harmless, and Python 3.10+ only
+    "B905",
+    # Import sorting — noise, not worth enforcing mid-development
+    "I001",
+    # Line length — Arabic strings are wide; disable to avoid churn
+    "E501",
+    # Missing newline at EOF — cosmetic
+    "W292",
+    # Trailing whitespace — cosmetic
+    "W291",
+    # Unused vars (allow _-prefixed and any unused local)
+    "F841",
+]
+
+[lint.per-file-ignores]
+"tests/*"           = ["F401", "F811"]
+"app/routers/seed.py" = ["F401"]
